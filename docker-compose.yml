@@ -11,6 +11,7 @@ services:
   database_service:
     image: postgres:18
     container_name: database_service
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -23,6 +24,7 @@ services:
   api_service:
     build: ./spring-api
     container_name: api_service
+    restart: unless-stopped
     depends_on:
       - database_service
     environment:
@@ -39,12 +41,14 @@ services:
       args:
         VITE_API_BASE_URL: http://localhost:81
     container_name: web_service
+    restart: unless-stopped
     networks:
       - web_api_network
 
   reverse_proxy_service:
     image: nginx:1.29-alpine
     container_name: reverse_proxy_service
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
