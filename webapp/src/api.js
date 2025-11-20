@@ -1,7 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhodtdfust:8080'
 
 export async function getHealth() {
-  console.log("API_BASE:", import.meta.env.VITE_API_BASE_URL);
   const res = await fetch(`${API_BASE}/api/health`)
   return res.json()
 }
