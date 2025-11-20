@@ -3,6 +3,10 @@ networks:
     driver: bridge
   web_api_network:
     driver: bridge
+  reverse_proxy_network:
+    driver: bridge
+  pgadmin_network:
+    driver: bridge
 
 volumes:
   pgdata:
@@ -25,6 +29,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  pgadmin_service:
+    image: dpage/pgadmin4:9
+    container_name: pgadmin_service
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_SETUP_USER: ${PGADMIN_EMAIL}
+      PGADMIN_SETUP_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_PATH_PREFIX: "'/pgadmin'"
+    depends_on:
+      - database_service
+    networks:
+      - reverse_proxy_network
+      - pgadmin_network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
 
   spring-api:
     build: ./spring-api

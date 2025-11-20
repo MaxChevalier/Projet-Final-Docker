@@ -201,6 +201,7 @@ ajout d'une nouvelle configuration Nginx pour le reverse proxy en mode dev (ngin
 - Backend :
   - Build : emaven:3.9-eclipse-temurin-21-alpine : dernière version stable de Maven avec JDK 21 et Alpine pour légèreté et rapidité
   - Runtime : eclipse-temurin:21-jre-alpine : JRE léger pour exécuter l’application Spring Boot
+  - On utilise la version JDK 21 puisque le projet compile avec cette version.
 
 - Frontend :
     - Build : node:25-alpine : dernière version stable de Node.js avec Alpine pour légèreté
