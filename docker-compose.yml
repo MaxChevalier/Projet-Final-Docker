@@ -8,9 +8,9 @@ volumes:
   db_data_volume:
 
 services:
-  database_service:
+  databaseservice:
     image: postgres:18
-    container_name: database_service
+    container_name: databaseservice
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -20,41 +20,64 @@ services:
       - db_data_volume:/var/lib/postgresql
     networks:
       - api_database_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  api_service:
+  apiservice:
     build: ./spring-api
-    container_name: api_service
+    container_name: apiservice
     restart: unless-stopped
     depends_on:
-      - database_service
+      databaseservice:
+        condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://database_service:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://databaseservice:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - api_database_network
       - web_api_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://apiservice:8080/api/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
 
-  web_service:
-    build: 
+  webservice:
+    build:
       context: ./webapp
       args:
-        VITE_API_BASE_URL: http://localhost:81
-    container_name: web_service
+        VITE_API_BASE_URL: http://localhost:80
+    container_name: webservice
     restart: unless-stopped
     networks:
       - web_api_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://webservice:80"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
 
-  reverse_proxy_service:
+  reverseproxyservice:
     image: nginx:1.29-alpine
-    container_name: reverse_proxy_service
+    container_name: reverseproxyservice
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
       - ./reverse_proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - web_service
-      - api_service
+      webservice:
+        condition: service_healthy
+      apiservice:
+        condition: service_healthy
     networks:
       - web_api_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://reverseproxyservice:80"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

@@ -182,6 +182,11 @@ Ajouter un argument de build pour injecter les variables au moment du build Dock
 - Reverse Proxy :
   - nginx:1.29-alpine : dernière version stable de Nginx avec Alpine pour légèreté
 
+### 🔹 Utilisation de multiple réseaux
+
+- Isolation des services pour une meilleure sécurité
+- Limitation de l’exposition des services uniquement à ceux qui en ont besoin
+
 ## 🎉 Conclusion
 
 Cette architecture respecte les bonnes pratiques :
