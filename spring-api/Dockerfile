@@ -1,3 +1,9 @@
+FROM maven:3.9-eclipse-temurin-21-alpine AS dev
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -B -q dependency:go-offline
+COPY src ./src
+
 # ====== STAGE 1 : Build Maven ======
 FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app

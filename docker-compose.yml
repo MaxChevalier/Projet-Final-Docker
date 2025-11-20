@@ -5,19 +5,19 @@ networks:
     driver: bridge
 
 volumes:
-  db_data_volume:
+  pgdata:
 
 services:
-  databaseservice:
+  db:
     image: postgres:18
-    container_name: databaseservice
+    container_name: db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - db_data_volume:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql
     networks:
       - api_database_network
     healthcheck:
@@ -26,58 +26,58 @@ services:
       timeout: 5s
       retries: 5
 
-  apiservice:
+  spring-api:
     build: ./spring-api
-    container_name: apiservice
+    container_name: spring-api
     restart: unless-stopped
     depends_on:
-      databaseservice:
+      db:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://databaseservice:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - api_database_network
       - web_api_network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://apiservice:8080/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://spring-api:8080/api/health"]
       interval: 15s
       timeout: 3s
       retries: 5
 
-  webservice:
+  webapp:
     build:
       context: ./webapp
       args:
         VITE_API_BASE_URL: http://localhost:80
-    container_name: webservice
+    container_name: webapp
     restart: unless-stopped
     networks:
       - web_api_network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://webservice:80"]
+      test: ["CMD", "wget", "--spider", "-q", "http://webapp:80"]
       interval: 15s
       timeout: 3s
       retries: 5
 
-  reverseproxyservice:
+  reverse-proxy:
     image: nginx:1.29-alpine
-    container_name: reverseproxyservice
+    container_name: reverse-proxy
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      - ./reverse_proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./reverse-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      webservice:
+      webapp:
         condition: service_healthy
-      apiservice:
+      spring-api:
         condition: service_healthy
     networks:
       - web_api_network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://reverseproxyservice:80"]
+      test: ["CMD", "wget", "--spider", "-q", "http://reverse-proxy:80"]
       interval: 10s
       timeout: 3s
       retries: 5

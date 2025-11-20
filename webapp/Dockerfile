@@ -1,3 +1,11 @@
+FROM node:18-alpine AS dev
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
+COPY . .
+EXPOSE 4800
+CMD ["npm", "run", "dev"]
+
 # ========== STAGE 1 : Build React ==========
 FROM node:25-alpine AS build
 WORKDIR /app

@@ -23,6 +23,7 @@ L’objectif : fournir un architecture propre, modulaire et entièrement contene
                 HTTP - http://localhost/ (port 80)
                                    │
                         ┌──────────▼───────────┐
+                        │   reverse-proxy      │
                         │ Reverse Proxy Nginx  │
                         └──────────┬───────────┘
                                    │
@@ -31,13 +32,13 @@ L’objectif : fournir un architecture propre, modulaire et entièrement contene
            / (frontend React)                      /api (backend)
               │                                          │
       ┌───────▼────────┐                       ┌────────▼──────────┐
-      │ web_service    │                       │  api_service      │
+      │    webapp      │                       │   spring-api      │
       │ React build    │                       │ Spring Boot REST  │
       └────────────────┘                       └────────┬──────────┘
                                                         │ JDBC
                                                         │
                                                ┌────────▼──────────┐
-                                               │ database_service  │
+                                               │       db          │
                                                │ PostgreSQL 16     │
                                                └───────────────────┘
 
@@ -96,7 +97,7 @@ GET | /api/users/{id} | Détails d’un utilisateur
 
 La communication API → DB se fait via JDBC :
 
-<code>jdbc:postgresql://database_service:5432/\<dbname></code>
+<code>jdbc:postgresql://db:5432/\<dbname></code>
 
 ## 🛑 4. Problèmes rencontrés & Solutions
 
@@ -119,7 +120,7 @@ Mauvaise URL JDBC
 #### Solutions
 
 Utilisation du bon hostname Docker :
-<code>jdbc:postgresql://database_service:5432/\<dbname></code>
+<code>jdbc:postgresql://db:5432/\<dbname></code>
 
 ### ❌ 3. Variables d'environnement React non prises en compte
 
@@ -130,6 +131,32 @@ React (Vite) lit les variables au build, pas au runtime Docker.
 #### Solution
 
 Ajouter un argument de build pour injecter les variables au moment du build Docker.
+
+### ❌ 4. Impossibilité de communiquer directement avec la webapp en mode dev
+
+#### Cause
+
+le mode host n'est pas activé au lancement du server
+
+#### Solution
+
+modifié dans le package.json du front la commande de démarrage du server en mode dev pour activer le mode host :
+
+```json
+"scripts": {
+    "dev": "vite --host",
+  },
+```
+
+### ❌ 5. La webapp est inaccessible en mode dev depuis le reverse proxy
+
+#### Cause
+
+en mode dev, la webapp React tourne sur le port 5173 et non 80
+
+#### Solution
+
+ajout d'une nouvelle configuration Nginx pour le reverse proxy en mode dev (nginx-dev.conf) qui redirige les requêtes vers le port 5173 de la webapp
 
 ## ⚙️ 5. Choix techniques & motivation
 
@@ -144,7 +171,7 @@ Ajouter un argument de build pour injecter les variables au moment du build Dock
 - web_api_network pour front ⇄ back ⇄ reverse proxy
 
 - api_database_network pour API ⇄ DB
-→ Sécurité : seul api_service peut toucher PostgreSQL
+→ Sécurité : seul  spring-api  eut toucher PostgreSQL
 
 ### 🔹 Localisation des DockerFile
 
