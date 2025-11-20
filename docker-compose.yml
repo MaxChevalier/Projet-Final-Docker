@@ -9,14 +9,14 @@ volumes:
 
 services:
   database_service:
-    image: postgres:16
+    image: postgres:18
     container_name: database_service
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - db_data_volume:/var/lib/postgresql/data
+      - db_data_volume:/var/lib/postgresql
     networks:
       - api_database_network
 
@@ -37,13 +37,13 @@ services:
     build: 
       context: ./webapp
       args:
-        VITE_API_BASE_URL: http://localhost:80
+        VITE_API_BASE_URL: http://localhost:81
     container_name: web_service
     networks:
       - web_api_network
 
   reverse_proxy_service:
-    image: nginx:alpine
+    image: nginx:1.29-alpine
     container_name: reverse_proxy_service
     ports:
       - "80:80"

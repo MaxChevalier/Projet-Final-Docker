@@ -1,5 +1,5 @@
 # ========== STAGE 1 : Build React ==========
-FROM node:20-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -9,7 +9,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # ========== STAGE 2 : Nginx Runtime ==========
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.29-alpine AS production
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

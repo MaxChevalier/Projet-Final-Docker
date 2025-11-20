@@ -1,68 +1,201 @@
-# Projet Final - Stack Spring Boot / Frontend JS / PostgreSQL
+# 📌 README — Projet Fullstack (React + Spring Boot + PostgreSQL + Nginx Reverse Proxy)
 
-> Utilisez ce fichier pour écrire la documentation en remplaçant le contenu par le vôtre.  
-> N'oubliez pas de préciser la composition de l'équipe dans ce fichier.
+## 📖 Introduction
 
-## Objectif du projet final
+Ce projet est une application web complète composée de :
 
-Assembler et exécuter une **application web complète** composée de trois services :
+- un frontend React (servi en statique via Nginx)
 
-* **Backend :** API REST Spring Boot
-* **Frontend :** application React ou Vue
-* **Base de données :** PostgreSQL
+- un backend Spring Boot exposant des endpoints REST
 
-L’objectif est de conteneuriser chaque service, les orchestrer avec **Docker Compose**, et garantir la persistance des données ainsi que la bonne communication entre les services.
+- une base PostgreSQL
 
----
+- un reverse proxy Nginx servant de gateway unique pour / et /api
 
-## Tâches à réaliser
+L’objectif : fournir un architecture propre, modulaire et entièrement conteneurisée avec Docker.
 
-1. Écrire les `Dockerfile` pour le backend (multi-stage) et le frontend (build + Nginx).
-   - Chaque dossier contiendra son propre `Dockerfile`.
-2. Créer le fichier `.env` pour les secrets.
-3. Écrire le `docker-compose.yml` complet (API, Web, DB).
-4. Tester le bon fonctionnement de la stack :
-   * API accessible sur `localhost:8080`
-   * Frontend sur `localhost:8081`
-   * Persistance PostgreSQL via volume.
-5. Ecrire une documentation claire et précise.
+## 🏗️ 1. Architecture globale
 
----
+                   ┌──────────────────────────────┐
+                   │     Utilisateur / Client     │
+                   └───────────────┬──────────────┘
+                                   │
+                HTTP - http://localhost/ (port 80)
+                                   │
+                        ┌──────────▼───────────┐
+                        │ Reverse Proxy Nginx  │
+                        └──────────┬───────────┘
+                                   │
+              ┌────────────────────┴─────────────────────┐
+              │                                          │
+           / (frontend React)                      /api (backend)
+              │                                          │
+      ┌───────▼────────┐                       ┌────────▼──────────┐
+      │ web_service    │                       │  api_service      │
+      │ React build    │                       │ Spring Boot REST  │
+      └────────────────┘                       └────────┬──────────┘
+                                                        │ JDBC
+                                                        │
+                                               ┌────────▼──────────┐
+                                               │ database_service  │
+                                               │ PostgreSQL 16     │
+                                               └───────────────────┘
 
-## Tests et validation
+- 👉 Le frontend ne communique qu’avec Nginx
+- 👉 Le backend communique avec PostgreSQL uniquement via JDBC
+- 👉 Pas de CORS grâce au reverse proxy
 
-<p></p>
+## 🚀 2. Commandes pour builder et lancer
 
-1️⃣ Lancer la stack :
+1. Cloner le projet
 
-```bash
-docker compose up -d --build
-```
+    ```bash
+    git clone <url-du-repo>
+    cd <projet>
+    ```
 
-2️⃣ Vérifier que tout fonctionne :
+2. Build complet
 
-* Backend disponible sur [http://localhost:8080](http://localhost:8080)
-* Frontend disponible sur [http://localhost:8081](http://localhost:8081)
-* PostgreSQL persistant via le volume `pgdata`
+    ```bash
+    docker compose build
+    ```
 
-3️⃣ Consulter les logs si besoin :
+3. Lancer les services
 
-```bash
-docker compose logs -f
-```
+    ```bash
+    docker compose up -d
+    ```
 
----
+4. Arrêter
 
-## Bonus (optionnel)
+    ```bash
+    docker compose down
+    ```
 
-<p></p>
+## 🌐 3. URLs & Endpoints exposés
 
-💡 Pour aller plus loin :
+### 💻 Frontend React
 
-* Ajouter un **service pgAdmin** pour visualiser la base.
-* Ajouter un **reverse proxy Nginx** entre le frontend et le backend.
-* Configurer une **intégration CI/CD** pour tester et builder la stack automatiquement.
+<code>http://localhost/</code>
 
-> Notifier les bonus effectués dans la documentation.
+Servi statiquement via Nginx (reverse_proxy_service).
 
+### 🛠️ Backend API Spring Boot
 
+Toutes les routes sont accessibles via le reverse proxy :
+
+<code>http://localhost/api/</code>
+
+Exemples :
+
+Méthode | URL | Description
+--- | --- | ---
+GET | /api/users | Liste des utilisateurs
+POST | /api/users | Création d’un utilisateur
+GET | /api/users/{id} | Détails d’un utilisateur
+
+La communication API → DB se fait via JDBC :
+
+<code>jdbc:postgresql://database_service:5432/\<dbname></code>
+
+## 🛑 4. Problèmes rencontrés & Solutions
+
+### ❌ 1. Erreur Nginx : "server directive is not allowed here"
+
+#### Cause
+
+Le fichier nginx.conf ne contenait pas la structure complète d’un fichier global
+
+#### Solution
+
+Se limiter à un fichier de conf dans conf.d/default.conf
+
+### ❌ 2. Le backend ne se connectait pas à PostgreSQL
+
+#### Problèmes rencontrés
+
+Mauvaise URL JDBC
+
+#### Solutions
+
+Utilisation du bon hostname Docker :
+<code>jdbc:postgresql://database_service:5432/\<dbname></code>
+
+### ❌ 3. Variables d'environnement React non prises en compte
+
+#### Cause
+
+React (Vite) lit les variables au build, pas au runtime Docker.
+
+#### Solution
+
+Ajouter un argument de build pour injecter les variables au moment du build Docker.
+
+## ⚙️ 5. Choix techniques & motivation
+
+### 🔹 Configuration Nginx minimal du reverse proxy
+
+- Gain de performance en évitant des configurations complexes
+
+- Plus facile à maintenir
+
+### 🔹 Séparation des réseaux Docker
+
+- web_api_network pour front ⇄ back ⇄ reverse proxy
+
+- api_database_network pour API ⇄ DB
+→ Sécurité : seul api_service peut toucher PostgreSQL
+
+### 🔹 Localisation des DockerFile
+
+- Chaque service a son propre Dockerfile dans son dossier
+→ Clarté et modularité
+
+### 🔹 Multi-stage builds
+
+- Backend Spring Boot : compilation + runtime séparés
+
+- Frontend React : build + Nginx séparés
+
+→ Images finales légères et optimisées
+
+### 🔹 Utilisation d’arguments de build pour React
+
+- Permet d’injecter des variables d’environnement au moment du build Docker
+→ Flexibilité pour différents environnements (dev, prod)
+
+### 🔹 Utilisation d'image docker précit
+
+- Pas de latest utilisé pour éviter les montées de version non contrôlées ou cassantes
+
+- Base de donnée :
+  - PostgreSQL:18 : dernière version stable avec correctifs de sécurité récents
+
+- Backend :
+  - Build : emaven:3.9-eclipse-temurin-21-alpine : dernière version stable de Maven avec JDK 21 et Alpine pour légèreté et rapidité
+  - Runtime : eclipse-temurin:21-jre-alpine : JRE léger pour exécuter l’application Spring Boot
+
+- Frontend :
+    - Build : node:25-alpine : dernière version stable de Node.js avec Alpine pour légèreté
+    - Runtime : nginx:1.29-alpine : dernière version stable de Nginx avec Alpine pour légèreté
+
+- Reverse Proxy :
+  - nginx:1.29-alpine : dernière version stable de Nginx avec Alpine pour légèreté
+
+## 🎉 Conclusion
+
+Cette architecture respecte les bonnes pratiques :
+
+- Reverse proxy unique
+
+- Front servie en statique
+
+- Service isolé
+
+- Base de données accessible uniquement par l’API
+
+- Multi-réseaux Docker propres
+
+- Pas de CORS
+
+- Communication API → DB via JDBC exclusivement
