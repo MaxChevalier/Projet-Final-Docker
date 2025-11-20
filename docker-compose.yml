@@ -10,6 +10,7 @@ networks:
 
 volumes:
   pgdata:
+  pgadmin_data:
 
 services:
   db:
@@ -30,9 +31,9 @@ services:
       timeout: 5s
       retries: 5
 
-  pgadmin_service:
+  pgadmin:
     image: dpage/pgadmin4:9
-    container_name: pgadmin_service
+    container_name: pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
@@ -40,13 +41,19 @@ services:
       PGADMIN_SETUP_PASSWORD: ${PGADMIN_PASSWORD}
       PGADMIN_CONFIG_SERVER_PATH_PREFIX: "'/pgadmin'"
     depends_on:
-      - database_service
+      db:
+        condition: service_healthy
     networks:
       - reverse_proxy_network
       - pgadmin_network
     volumes:
       - pgadmin_data:/var/lib/pgadmin
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://pgadmin:80"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
 
   spring-api:
     build: ./spring-api
@@ -95,6 +102,8 @@ services:
       webapp:
         condition: service_healthy
       spring-api:
+        condition: service_healthy
+      pgadmin:
         condition: service_healthy
     networks:
       - web_api_network

@@ -8,6 +8,14 @@ services:
     healthcheck:
       disable: true
 
+  pgadmin:
+    depends_on:
+      - db
+    healthcheck:
+      disable: true
+    ports:
+      - "5050:80"
+
   spring-api:
     build:
       context: ./spring-api
@@ -52,3 +60,4 @@ services:
     depends_on:
       - spring-api
       - webapp
+      - pgadmin
