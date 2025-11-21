@@ -16,31 +16,31 @@ L’objectif : fournir un architecture propre, modulaire et entièrement contene
 
 ## 🏗️ 1. Architecture globale
 
-                   ┌──────────────────────────────┐
-                   │     Utilisateur / Client     │
-                   └───────────────┬──────────────┘
-                                   │
-                HTTP - http://localhost/ (port 80)
-                                   │
-                        ┌──────────▼───────────┐
-                        │   reverse-proxy      │
-                        │ Reverse Proxy Nginx  │
-                        └──────────┬───────────┘
-                                   │
-              ┌────────────────────┴─────────────────────┐
-              │                                          │
-           / (frontend React)                      /api (backend)
-              │                                          │
-      ┌───────▼────────┐                       ┌────────▼──────────┐
-      │    webapp      │                       │   spring-api      │
-      │ React build    │                       │ Spring Boot REST  │
-      └────────────────┘                       └────────┬──────────┘
-                                                        │ JDBC
-                                                        │
-                                               ┌────────▼──────────┐
-                                               │       db          │
-                                               │ PostgreSQL 16     │
-                                               └───────────────────┘
+                       ┌──────────────────────────────┐
+                       │     Utilisateur / Client     │
+                       └───────────────┬──────────────┘
+                                       │
+                    HTTP - http://localhost/ (port 80)
+                                       │
+                            ┌──────────▼───────────┐
+                            │   reverse-proxy      │
+                            │ Reverse Proxy Nginx  │
+                            └──────────┬───────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+      / (frontend React)        /api (backend)          /pgadmin (pgadmin)
+              │                        │                        │
+      ┌───────▼────────┐      ┌────────▼──────────┐     ┌───────▼────────┐
+      │    webapp      │      │   spring-api      │     │    pgadmin     │
+      │ React build    │      │ Spring Boot REST  │     │  pgAdmin 6 UI  │
+      └────────────────┘      └────────┬──────────┘     └───────┬────────┘
+                                       │ JDBC                   │
+                                       │                        │
+                              ┌────────▼──────────┐             │
+                              │       db          ◄─────────────┘
+                              │ PostgreSQL 16     │
+                              └───────────────────┘
 
 - 👉 Le frontend ne communique qu’avec Nginx
 - 👉 Le backend communique avec PostgreSQL uniquement via JDBC
@@ -55,16 +55,16 @@ L’objectif : fournir un architecture propre, modulaire et entièrement contene
     cd <projet>
     ```
 
-2. Build complet
+2. Lancer les services en mode dev
 
     ```bash
-    docker compose build
+    docker compose up --build -d
     ```
 
-3. Lancer les services
+3.  Lancer les services en mode production
 
     ```bash
-    docker compose up -d
+    docker compose -f docker-compose.yml up --build -d
     ```
 
 4. Arrêter
@@ -206,6 +206,9 @@ ajout d'une nouvelle configuration Nginx pour le reverse proxy en mode dev (ngin
 - Frontend :
     - Build : node:25-alpine : dernière version stable de Node.js avec Alpine pour légèreté
     - Runtime : nginx:1.29-alpine : dernière version stable de Nginx avec Alpine pour légèreté
+
+- pgAdmin :
+  - pgadmin/pgadmin4:9 : dernière version stable de pgAdmin 4
 
 - Reverse Proxy :
   - nginx:1.29-alpine : dernière version stable de Nginx avec Alpine pour légèreté

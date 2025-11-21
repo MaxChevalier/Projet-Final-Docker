@@ -1,8 +1,6 @@
 networks:
   api_database_network:
     driver: bridge
-  web_api_network:
-    driver: bridge
   reverse_proxy_network:
     driver: bridge
   pgadmin_network:
@@ -68,7 +66,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - api_database_network
-      - web_api_network
+      - reverse_proxy_network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://spring-api:8080/api/health"]
       interval: 15s
@@ -83,7 +81,7 @@ services:
     container_name: webapp
     restart: unless-stopped
     networks:
-      - web_api_network
+      - reverse_proxy_network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://webapp:80"]
       interval: 15s
@@ -106,7 +104,7 @@ services:
       pgadmin:
         condition: service_healthy
     networks:
-      - web_api_network
+      - reverse_proxy_network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://reverse-proxy:80"]
       interval: 10s

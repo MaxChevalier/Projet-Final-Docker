@@ -2,3 +2,5 @@ POSTGRES_USER=<your_username>
 POSTGRES_PASSWORD=<your_password>
 POSTGRES_DB=<your_database_name>
 
+PGADMIN_EMAIL=<email_pgadmin>
+PGADMIN_PASSWORD=<password_pgadmin>
