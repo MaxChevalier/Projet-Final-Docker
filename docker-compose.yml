@@ -10,6 +10,26 @@ volumes:
   pgdata:
   pgadmin_data:
 
+configs:
+  pgadmin-servers:
+    content: |
+      {
+        "Servers": {
+          "1": {
+            "Name": "Postgres Database",
+            "Group": "Servers",
+            "Host": "db",
+            "Port": 5432,
+            "MaintenanceDB": "${POSTGRES_DB}",
+            "Username": "${POSTGRES_USER}",
+            "PassFile": "/config/pgpass"
+          }
+        }
+      }
+  pgadmin-pgpass:
+    content: |
+      db:5432:${POSTGRES_DB}:${POSTGRES_USER}:${POSTGRES_PASSWORD}
+
 services:
   db:
     image: postgres:18
@@ -23,6 +43,7 @@ services:
       - pgdata:/var/lib/postgresql
     networks:
       - api_database_network
+      - pgadmin_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -35,8 +56,6 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-      PGADMIN_SETUP_USER: ${PGADMIN_EMAIL}
-      PGADMIN_SETUP_PASSWORD: ${PGADMIN_PASSWORD}
       PGADMIN_CONFIG_SERVER_PATH_PREFIX: "'/pgadmin'"
     depends_on:
       db:
@@ -46,7 +65,15 @@ services:
       - pgadmin_network
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    configs:
+      - source: pgadmin-pgpass
+        target: /config/pgpass
+        uid: "5050"
+        gid: "5050"
+        mode: 0400
+      - source: pgadmin-servers
+        target: /pgadmin4/servers.json
+        mode: 0444
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://pgadmin:80"]
       interval: 15s
