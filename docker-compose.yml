@@ -37,7 +37,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
       PGADMIN_SETUP_USER: ${PGADMIN_EMAIL}
       PGADMIN_SETUP_PASSWORD: ${PGADMIN_PASSWORD}
-      PGADMIN_CONFIG_SERVER_PATH_PREFIX: "'/pgadmin'"
+      POSTGRES_USER: ${POSTGRES_USER}
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +46,6 @@ services:
       - pgadmin_network
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://pgadmin:80"]
       interval: 15s
